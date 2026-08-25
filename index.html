@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spese di casa — archivio e report mensili</title>
+<link rel="stylesheet" href="css/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="logo"><span class="p">🏠</span> Spese di casa</div>
+    <div class="sp"></div>
+    <select id="selPeriodo" style="width:auto;min-width:150px"
+      data-tip="Periodo in corso|Riepilogo, Movimenti, Categorie ed export mostrano questo periodo. Cambia la granularità (mese, trimestre, anno) dal menu a sinistra."></select>
+    <button class="btn" id="btnManuale"
+      data-tip="Aggiungi una spesa|Per quello che negli estratti non c'è: contanti, assicurazione auto pagata dal conto, bollette, imprevisti, rimborsi.">＋ Spesa</button>
+    <button class="btn pri" id="btnImporta"
+      data-tip="Importa estratti|Apre la scheda Importa. Puoi scegliere i file, farli leggere in automatico dalla cartella raw/, oppure trascinarli sulla finestra da qualsiasi punto dell'app.">⬆ Importa estratti</button>
+    <button class="btn gh" id="btnGuida"
+      data-tip="Guida e visita guidata|Come funziona l'app, cosa fa ogni pulsante e un giro guidato passo passo.">?</button>
+    <button class="btn gh" id="btnImpostazioni"
+      data-tip="Impostazioni|Nomi, percentuale di divisione delle spese comuni, comportamento dei conti e mese di competenza.">⚙</button>
+  </header>
+
+  <aside>
+    <div class="side-t">Archivio</div>
+    <div class="gran-switch" id="granSwitch"
+      data-tip="Granularità del recap|Guarda i totali per singolo mese, per trimestre (tre mesi) o per anno intero. Note, chat e assistente restano sempre sul mese in corso.">
+      <button data-gran="mese">Mese</button>
+      <button data-gran="trimestre">Trimestre</button>
+      <button data-gran="anno">Anno</button>
+    </div>
+    <div id="listaMesi"></div>
+    <div class="side-t" style="margin-top:14px">Archivio</div>
+    <div style="padding:0 8px">
+      <button class="btn sm" id="btnBackup" style="width:100%;margin-bottom:5px;justify-content:center"
+        data-tip="Salva backup|Scarica tutto l'archivio in un file .json. È l'unica copia che sopravvive a un cambio di computer: fallo una volta al mese e mettilo in archivio/.">💾 Salva backup</button>
+      <button class="btn sm" id="btnRipristina" style="width:100%;justify-content:center"
+        data-tip="Ripristina backup|Ricarica un file .json salvato prima. L'archivio attuale viene sostituito, quindi ti viene chiesta conferma.">📂 Ripristina backup</button>
+      <div class="mini muto" id="statoSalvataggio" style="padding:9px 2px 0;line-height:1.5"></div>
+    </div>
+  </aside>
+
+  <main><div class="wrap">
+    <div class="tabs" id="tabs"></div>
+    <div id="vista"></div>
+  </div></main>
+
+  <aside class="assist-panel" id="assistPanel">
+    <div class="assist-testa">
+      <span class="assist-tit">🤖 Assistente</span>
+      <div class="sp"></div>
+      <button class="btn gh sm" id="btnFissaAssist" data-azione="assist-fissa"
+        data-tip="Blocca di lato|Tiene il pannello sempre aperto come una barra degli strumenti invece di farlo scorrere dentro e fuori.">📌</button>
+      <button class="btn gh sm" data-azione="assist-chiudi" data-tip="Chiudi">✕</button>
+    </div>
+    <div class="assist-corpo" id="assistCorpo"></div>
+  </aside>
+
+</div>
+
+<div class="assist-backdrop" id="assistBackdrop" data-azione="assist-chiudi"></div>
+<button class="assist-fab" id="btnAssistente" data-azione="assist-apri"
+  data-tip="Assistente|Domande sui numeri del mese, testi pronti, e tutte le conversazioni passate.">🤖</button>
+
+<div id="modali"></div>
+<div id="toast"></div>
+<input type="file" id="filePicker" multiple accept=".xlsx,.xls,.csv,.pdf" hidden>
+<input type="file" id="backupPicker" accept=".json" hidden>
+<input type="file" id="regolePicker" accept=".json" hidden>
+
+<script src="js/vendor/xlsx.full.min.js"></script>
+<script src="js/util.js"></script>
+<script src="js/xlsxlite.js"></script>
+<script src="js/xlsxwrite.js"></script>
+<script src="js/pdf.js"></script>
+<script type="module" src="js/pdfread.js"></script>
+<script src="js/parserpdf.js"></script>
+<script src="js/parsertelepass.js"></script>
+<script src="js/parser.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/store.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/report.js"></script>
+<script src="js/ia.js"></script>
+<script src="js/guida.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+Qui dentro vanno gli estratti conto scaricati, una sottocartella per mese.
+
+  raw/2026-07/carta-1234-condivisa-2026-07.xlsx
+  raw/2026-07/carta-5678-personale-2026-07.xlsx
+  raw/2026-07/conto-corrente-2026-07.xlsx
+  raw/2026-07/telepass-2026-07.xls
+
+I nomi dei file non contano per l'app: il formato viene riconosciuto dal contenuto.
+Servono a te per ritrovarli.
+
+Poi apri l'app e premi "Leggi tutto da raw/".
+
+---
+
+Formati letti, anche mescolati nella stessa cartella:
+  - Estratto conto carta (.xlsx)
+  - Movimenti conto corrente (.xlsx)
+  - Movimenti Telepass (.xls)
+  - Estratto conto Fineco trimestrale (.pdf) — quello vero scaricato dall'area
+    "Documenti" di Fineco: contiene DA SOLO sia i movimenti del conto corrente
+    sia quelli di ogni carta collegata, un trimestre alla volta. È il modo più
+    veloce per recuperare anni di storico in un colpo solo.
+  - Rendicontazioni Telepass (.pdf) — anche qui tre documenti diversi sotto lo
+    stesso nome "fattura": pedaggi (Autostrade per l'Italia), canone Telepass,
+    parcheggi. Riconosciuti automaticamente uno per uno.
+  - CSV generico di qualunque altra banca (.csv) — se il formato non è tra
+    quelli sopra, l'app chiede una volta sola quali colonne usare (data,
+    importo, descrizione) e se lo ricorda per i file successivi con la
+    stessa intestazione.
+
+storico-conto-pdf/      gli estratti conto trimestrali in PDF (2017-2026)
+storico-carte-xlsx/     gli estratti mensili delle singole carte in .xlsx
+storico-telepass-pdf/   le rendicontazioni Telepass in PDF (pedaggi, canone, parcheggi)
+
+Non serve tenerli in queste sottocartelle: l'app legge ricorsivamente un
+livello di cartelle dentro raw/, quindi va bene qualunque nome tu preferisca.
+Rimangono qui solo per tenere ordinato l'archivio dei documenti originali.
+
+Riportare due volte lo stesso movimento (es. lo stesso mese sia nel PDF
+trimestrale sia nell'xlsx della singola carta) non crea doppioni: l'app
+riconosce che è la stessa spesa e la conta una sola volta.
+
+---
+
+catalogo.csv / catalogo.md — l'indice di tutto quello che c'è qui dentro,
+scritto dall'app (pulsante "🗂 Genera/aggiorna catalogo" nella scheda
+Importa): per ogni file, periodo coperto, tipologia (conto/carta/Telepass),
+numero di movimenti, e se il totale letto coincide con quello dichiarato
+dalla banca. Rigeneralo ogni volta che aggiungi nuovi file: non tocca
+l'archivio dell'app, serve solo come riferimento leggibile anche fuori dal
+browser (si apre con Excel/Numbers o un editor di testo).

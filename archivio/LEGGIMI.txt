@@ -1,0 +1,8 @@
+Qui dentro vanno i report generati dall'app e i backup.
+
+Suggerimento di ordine:
+  2026-07-report.pdf              report stampabile del mese
+  2026-07-spese-comuni.csv        dettaglio per Excel
+  backup-spese-2026-07-31.json    backup dell'archivio
+
+Il backup .json è l'unica copia dei dati fuori dal browser: salvane uno ogni mese.

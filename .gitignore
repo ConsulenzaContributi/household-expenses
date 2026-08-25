@@ -1,0 +1,9 @@
+chiave-nvidia.txt
+.DS_Store
+.claude/
+node_modules/
+
+raw/*
+!raw/LEGGIMI.txt
+archivio/*
+!archivio/LEGGIMI.txt
