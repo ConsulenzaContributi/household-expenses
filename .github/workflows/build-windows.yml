@@ -1,0 +1,79 @@
+name: Build Windows installer
+
+# Costruisce l'eseguibile e l'installer Windows di "Spese di casa" — non serve
+# un PC Windows: gira su un runner Windows di GitHub Actions.
+#
+# Si avvia da solo quando spingi un tag "v*" (es. v1.1.0), oppure a mano dalla
+# scheda Actions del repository ("Run workflow"). Il file .exe risultante
+# finisce sia negli "artifacts" della run, sia — solo per i tag — allegato a
+# una Release GitHub, pronta da linkare o scaricare.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout del repository
+        uses: actions/checkout@v4
+
+      - name: Versione da usare per l'installer
+        id: versione
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "numero=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "numero=$(cat VERSION | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Imposta Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installa PyInstaller
+        run: pip install pyinstaller
+
+      - name: Costruisce SpeseDiCasa.exe da server.py
+        run: pyinstaller --onefile --console --name SpeseDiCasa server.py
+
+      - name: Prepara la cartella "stage" con tutto quello che serve
+        shell: pwsh
+        run: |
+          $stage = "packaging/windows/stage"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item dist/SpeseDiCasa.exe $stage/
+          Copy-Item index.html $stage/
+          Copy-Item -Recurse css $stage/css
+          Copy-Item -Recurse js $stage/js
+          Copy-Item LEGGIMI.md $stage/
+          New-Item -ItemType Directory -Force -Path "$stage/raw" | Out-Null
+          Copy-Item raw/LEGGIMI.txt "$stage/raw/LEGGIMI.txt"
+          New-Item -ItemType Directory -Force -Path "$stage/archivio" | Out-Null
+          Copy-Item archivio/LEGGIMI.txt "$stage/archivio/LEGGIMI.txt"
+
+      - name: Installa Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Compila l'installer
+        shell: cmd
+        run: |
+          "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" /DMyAppVersion=${{ steps.versione.outputs.numero }} packaging\windows\installer.iss
+
+      - name: Carica l'installer come artifact della run
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpeseDiCasa-Setup-${{ steps.versione.outputs.numero }}
+          path: packaging/windows/output/SpeseDiCasa-Setup-*.exe
+
+      - name: Pubblica la Release (solo per i tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packaging/windows/output/SpeseDiCasa-Setup-*.exe
+          generate_release_notes: true

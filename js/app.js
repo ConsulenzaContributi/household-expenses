@@ -12,6 +12,7 @@
     repCorrente: null,     // rep del periodo attuale (segue A.periodo)
     repMeseCorrente: null, // rep del mese in corso (segue sempre A.mese, per Note/Assistente/+Spesa)
     ricercaSoggetto: null, // { testo, ambito, risultato } della scheda Soggetti
+    ordineMov: { campo: 'data', dir: 'desc' }, // ordinamento della tabella Movimenti
     proposte: null,      // esito del motore spese comuni, in attesa di conferma
     documento: null,     // ultimo testo generato dall'assistente
     inAttesa: false,
@@ -119,6 +120,15 @@
 
       const az = e.target.closest('[data-azione]');
       if (az) { e.preventDefault(); azione(az.dataset.azione, az); return; }
+
+      const ord = e.target.closest('[data-ordina]');
+      if (ord) {
+        const campo = ord.dataset.ordina;
+        if (A.ordineMov.campo === campo) A.ordineMov.dir = A.ordineMov.dir === 'asc' ? 'desc' : 'asc';
+        else { A.ordineMov.campo = campo; A.ordineMov.dir = campo === 'data' ? 'desc' : 'asc'; }
+        V.render(A);
+        return;
+      }
 
       // scorciatoie dal riepilogo verso i movimenti filtrati
       const fc = e.target.closest('[data-filtra-cat]');
@@ -320,6 +330,12 @@
         V.toast('Regole esportate', 'ok');
         break;
       case 'importa-regole': $('#regolePicker').click(); break;
+      case 'esporta-regole-md': {
+        const md = R.regoleMarkdown(A.stato.config.regole, A.stato.config.conti);
+        U.scarica('regole-spese-di-casa.md', md, 'text/markdown;charset=utf-8');
+        V.toast('Regole esportate in Markdown', 'ok');
+        break;
+      }
       case 'reset-regole':
         V.modale('Ripristinare le regole di partenza?',
           '<p class="mini muto">Le regole che hai aggiunto o modificato andranno perse. I movimenti che hai corretto a mano restano come sono.</p>',
@@ -822,9 +838,31 @@
   /* --------------------------------------------- report PDF e XLSX ------ */
   const commentoDelMese = () => (A.stato.commenti || {})[A.mese] || null;
 
-  /** stesso schema di nomi per ogni esportazione: <mese> - <tipo>.<estensione>,
-   *  dentro archivio/<mese>/ — così l'archivio resta sempre ordinato da solo */
-  const nomeReport = (rep, tipo, ext) => `${rep.mese} - ${tipo}.${ext}`;
+  /** oggi in formato gg-mm-aaaa, sicuro da mettere in un nome file */
+  const dataOggiBreve = () => {
+    const d = new Date();
+    return `${U.p2(d.getDate())}-${U.p2(d.getMonth() + 1)}-${d.getFullYear()}`;
+  };
+
+  /** true se il rep è esattamente il mese più recente in archivio: quello ancora
+   *  aperto, di cui puoi ricevere altri movimenti da un giorno all'altro — un
+   *  report generato ora è per forza parziale, non l'ultima parola su quel mese */
+  const meseInCorso = (rep) => rep.tipo === 'mese' && rep.mese === (E.mesi(A.stato)[0] || null);
+
+  /** stesso schema di nomi per ogni esportazione: <mese> - <tipo> (<parziale> · <saldo>).<estensione>,
+   *  dentro archivio/<anno>/ — così l'archivio resta sempre ordinato da solo, e chi apre
+   *  la cartella vede subito se il mese è ancora aperto e chi deve quanto a chi senza aprire il file */
+  const nomeReport = (rep, tipo, ext) => {
+    const parti = [];
+    if (meseInCorso(rep)) parti.push(`parziale al ${dataOggiBreve()}`);
+    if (rep.config.modalita !== 'personale' && Math.abs(rep.saldo) >= 0.01) parti.push(E.fraseSaldo(rep));
+    const suffisso = parti.length ? ` (${parti.join(' · ')})` : '';
+    return `${rep.mese} - ${tipo}${suffisso}.${ext}`;
+  };
+  /** una sola cartella per anno dentro archivio/ (es. "2026"), invece di una per mese:
+   *  rep.mese è la chiave del periodo qualunque sia la granularità ("2026-08", "2026-T3", "2026") —
+   *  i primi 4 caratteri sono sempre l'anno */
+  const cartellaAnno = (rep) => rep.mese.slice(0, 4);
 
   function avvisaSalvataggio(r, cosa) {
     if (r.salvatoSulServer) {
@@ -854,8 +892,8 @@
   async function esportaPdf(rep) {
     try {
       V.toast('Preparo il PDF…');
-      const blob = REP.pdf(rep, { commento: commentoDelMese() });
-      const r = await U.salva(rep.mese, nomeReport(rep, 'Report spese comuni', 'pdf'), blob, 'application/pdf');
+      const blob = REP.pdf(rep, { commento: commentoDelMese(), parziale: meseInCorso(rep) ? dataOggiBreve() : null });
+      const r = await U.salva(cartellaAnno(rep), nomeReport(rep, 'Report spese comuni', 'pdf'), blob, 'application/pdf');
       avvisaSalvataggio(r, 'PDF');
     } catch (e) {
       console.error(e);
@@ -866,7 +904,7 @@
   async function esportaCsv(rep) {
     try {
       V.toast('Preparo il CSV…');
-      const r = await U.salva(rep.mese, nomeReport(rep, 'Movimenti', 'csv'), E.csv(rep), 'text/csv;charset=utf-8');
+      const r = await U.salva(cartellaAnno(rep), nomeReport(rep, 'Movimenti', 'csv'), E.csv(rep), 'text/csv;charset=utf-8');
       avvisaSalvataggio(r, 'CSV');
     } catch (e) {
       console.error(e);
@@ -877,8 +915,8 @@
   async function esportaXlsx(rep) {
     try {
       V.toast('Preparo il foglio Excel…');
-      const blob = await REP.xlsx(rep, { commento: commentoDelMese() });
-      const r = await U.salva(rep.mese, nomeReport(rep, 'Report spese comuni', 'xlsx'), blob,
+      const blob = await REP.xlsx(rep, { commento: commentoDelMese(), parziale: meseInCorso(rep) ? dataOggiBreve() : null });
+      const r = await U.salva(cartellaAnno(rep), nomeReport(rep, 'Report spese comuni', 'xlsx'), blob,
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       avvisaSalvataggio(r, 'XLSX');
     } catch (e) {

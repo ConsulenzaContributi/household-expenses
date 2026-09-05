@@ -1,7 +1,7 @@
 Qui dentro vanno gli estratti conto scaricati, una sottocartella per mese.
 
-  raw/2026-07/carta-1234-condivisa-2026-07.xlsx
-  raw/2026-07/carta-5678-personale-2026-07.xlsx
+  raw/2026-07/carta-9576-condivisa-2026-07.xlsx
+  raw/2026-07/carta-6820-personale-2026-07.xlsx
   raw/2026-07/conto-corrente-2026-07.xlsx
   raw/2026-07/telepass-2026-07.xls
 

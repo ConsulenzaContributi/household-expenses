@@ -28,16 +28,20 @@ categorize, and optionally split expenses with someone or just track your own.*
 
 ## Come si avvia
 
-Serve Python 3 (preinstallato su macOS e sulla maggior parte delle distribuzioni Linux).
+**Windows**: scarica l'installer `SpeseDiCasa-Setup-X.Y.Z.exe` dalla sezione
+[Releases](../../releases) — non serve installare Python, crea un collegamento nel menu Start.
+
+**Mac/Linux**: serve Python 3 (preinstallato su macOS e sulla maggior parte delle distribuzioni Linux).
 
 ```bash
-git clone https://github.com/<tuo-utente>/household-expenses.git
+git clone https://github.com/ConsulenzaContributi/household-expenses.git
 cd household-expenses
-python3 server.py 8791
+python3 server.py
 ```
 
-Poi apri `http://localhost:8791` nel browser. Su macOS puoi anche fare doppio clic su
-`avvia.command`, che apre il browser da solo.
+Il server apre da solo il browser sull'app (sceglie da solo un'altra porta se la 8791 è occupata).
+Su macOS puoi anche fare doppio clic su `avvia.command`; su Windows, se hai già Python installato
+e preferisci non usare l'installer, su `avvia.bat`.
 
 Al primo avvio l'app fa due domande — come vuoi usarla, e se condividi le spese con qualcuno i
 vostri nomi — e propone di aggiungere una chiave API NVIDIA (facoltativa, gratuita su

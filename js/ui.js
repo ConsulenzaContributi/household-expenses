@@ -276,6 +276,15 @@ window.V = (function () {
     <style>@media(max-width:760px){.due-col{grid-template-columns:1fr!important}}</style>`;
   }
 
+  /** intestazione cliccabile della tabella Movimenti: un clic ordina, un secondo
+   *  clic sulla stessa colonna inverte il verso (alfabetico o numerico a seconda della colonna) */
+  function intestazioneOrdinabile(A, campo, etichetta, classe) {
+    const attivo = A.ordineMov && A.ordineMov.campo === campo;
+    const freccia = attivo ? (A.ordineMov.dir === 'asc' ? ' ▲' : ' ▼') : '';
+    return `<th class="${classe || ''} ord ${attivo ? 'on' : ''}" data-ordina="${campo}"
+      data-tip="Ordina|Un clic ordina per ${h(etichetta.toLowerCase())}, un altro clic inverte il verso.">${h(etichetta)}${freccia}</th>`;
+  }
+
   /* ======================================================== movimenti === */
   function vMovimenti(rep, A) {
     const f = A.filtri;
@@ -290,8 +299,24 @@ window.V = (function () {
     if (f.stato === 'esclusi') mov = mov.filter((m) => m.escluso);
     if (f.stato === 'personali') mov = mov.filter((m) => !m.escluso && E.quotaComune(m) === 0);
     if (f.stato === 'controllare') mov = mov.filter((m) => rep.daControllare.includes(m));
-    mov.sort((a, b) => (b.dataReg || b.data).localeCompare(a.dataReg || a.data) ||
-                       b.data.localeCompare(a.data) || Math.abs(b.importo) - Math.abs(a.importo));
+
+    if (!A.ordineMov) A.ordineMov = { campo: 'data', dir: 'desc' };
+    const nomeEsercente = (m) => m.esercente || U.pulisci(m.descrizione);
+    const etichettaConto = (m) => R.contoInfo(m.conto, rep.config.conti).etichetta;
+    const COMPARATORI = {
+      data: (a, b) => (a.dataReg || a.data).localeCompare(b.dataReg || b.data) || a.data.localeCompare(b.data),
+      descrizione: (a, b) => nomeEsercente(a).localeCompare(nomeEsercente(b), 'it', { sensitivity: 'base' }),
+      categoria: (a, b) => (a.categoria || '').localeCompare(b.categoria || '', 'it', { sensitivity: 'base' }),
+      conto: (a, b) => etichettaConto(a).localeCompare(etichettaConto(b), 'it', { sensitivity: 'base' }),
+      importo: (a, b) => Math.abs(a.importo) - Math.abs(b.importo),
+      quota: (a, b) => (a.escluso ? 0 : Number(a.quota) || 0) - (b.escluso ? 0 : Number(b.quota) || 0),
+      comune: (a, b) => E.quotaComune(a) - E.quotaComune(b),
+      pagato: (a, b) => (a.pagatoDa === 'moglie' ? rep.config.nomeAltro : rep.config.nomeMio)
+        .localeCompare(b.pagatoDa === 'moglie' ? rep.config.nomeAltro : rep.config.nomeMio, 'it', { sensitivity: 'base' })
+    };
+    const cmp = COMPARATORI[A.ordineMov.campo] || COMPARATORI.data;
+    const verso = A.ordineMov.dir === 'asc' ? 1 : -1;
+    mov.sort((a, b) => verso * cmp(a, b) || COMPARATORI.data(a, b) * -1);
 
     const contiPresenti = [...new Set(rep.tutti.map((m) => m.conto))];
     const catPresenti = [...new Set(rep.tutti.map((m) => m.categoria))].sort();
@@ -356,8 +381,11 @@ window.V = (function () {
     </div>
 
     <div class="tbl-wrap"><div class="tbl-scroll"><table class="mov">
-      <thead><tr><th class="marca"></th><th>Data</th><th>Descrizione</th><th>Categoria</th><th class="num">Importo</th>
-        <th class="num">Quota</th><th class="num">In comune</th><th>Pagato da</th><th></th></tr></thead>
+      <thead><tr><th class="marca"></th>${
+        intestazioneOrdinabile(A, 'data', 'Data')}${intestazioneOrdinabile(A, 'descrizione', 'Descrizione')}${
+        intestazioneOrdinabile(A, 'categoria', 'Categoria')}${intestazioneOrdinabile(A, 'importo', 'Importo', 'num')}${
+        intestazioneOrdinabile(A, 'quota', 'Quota', 'num')}${intestazioneOrdinabile(A, 'comune', 'In comune', 'num')}${
+        intestazioneOrdinabile(A, 'pagato', 'Pagato da')}<th></th></tr></thead>
       <tbody id="tbodyMov">${righe || '<tr><td colspan="9" style="text-align:center;padding:34px;color:var(--txt2)">Nessun movimento con questi filtri.</td></tr>'}</tbody>
     </table></div></div>
     <p class="mini muto" style="margin-top:9px">La <b>quota</b> è la percentuale dell'importo che entra nelle spese comuni: 100% = tutta comune, 50% = metà, 0% = spesa personale. Ogni modifica a mano viene ricordata e non verrà più sovrascritta dalle regole automatiche.</p>`;
@@ -615,8 +643,10 @@ window.V = (function () {
       <button class="btn pri" data-azione="nuova-regola">＋ Nuova regola</button>
       <button class="btn" data-azione="riapplica">🔄 Riapplica a tutto l'archivio</button>
       <span style="flex:1"></span>
-      <button class="btn gh mini" data-azione="esporta-regole">⬇ Esporta</button>
+      <button class="btn gh mini" data-azione="esporta-regole">⬇ Esporta .json</button>
       <button class="btn gh mini" data-azione="importa-regole">⬆ Importa</button>
+      <button class="btn gh mini" data-azione="esporta-regole-md"
+        data-tip="Esporta in Markdown|Un documento leggibile con tutte le regole, i conti e il criterio dei doppioni — pensato per essere letto, confrontato e migliorato, non per essere importato di nuovo nell'app.">📄 Esporta .md</button>
       <button class="btn gh mini" data-azione="reset-regole">Ripristina regole di partenza</button>
     </div>
 

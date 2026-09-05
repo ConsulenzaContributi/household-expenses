@@ -1,8 +1,13 @@
 Qui dentro vanno i report generati dall'app e i backup.
 
-Suggerimento di ordine:
-  2026-07-report.pdf              report stampabile del mese
-  2026-07-spese-comuni.csv        dettaglio per Excel
-  backup-spese-2026-07-31.json    backup dell'archivio
+L'app crea una sola cartella per anno (non una per mese): dentro ci finiscono i report
+di tutti i mesi/trimestri di quell'anno, uno via l'altro, con il periodo già scritto
+nel nome del file — così restano ordinati da soli senza bisogno di sottocartelle.
 
-Il backup .json è l'unica copia dei dati fuori dal browser: salvane uno ogni mese.
+  2026/2026-07 - Report spese comuni (Moglie deve 654,10 € a Vincenzo).pdf
+  2026/2026-07 - Report spese comuni.xlsx
+  2026/2026-08 - Report spese comuni.pdf
+  Backup/backup-spese-2026-08-31.json
+
+Il backup .json (cartella "Backup") è l'unica copia dei dati fuori dal browser: salvane
+uno ogni mese.

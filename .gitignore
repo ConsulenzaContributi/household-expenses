@@ -1,9 +1,11 @@
 chiave-nvidia.txt
+raw/
+archivio/
 .DS_Store
-.claude/
-node_modules/
 
-raw/*
-!raw/LEGGIMI.txt
-archivio/*
-!archivio/LEGGIMI.txt
+# artefatti di build locali del packaging Windows (li ricostruisce build-windows.yml)
+build/
+dist/
+*.spec
+packaging/windows/stage/
+packaging/windows/output/

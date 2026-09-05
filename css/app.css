@@ -127,6 +127,9 @@ table.mov{width:100%;border-collapse:collapse;font-size:13px}
 table.mov th{position:sticky;top:0;background:var(--card2);text-align:left;font-size:10.5px;
      text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);font-weight:700;
      padding:9px 10px;border-bottom:1px solid var(--bordo);white-space:nowrap;z-index:2}
+table.mov th.ord{cursor:pointer;user-select:none}
+table.mov th.ord:hover{color:var(--txt)}
+table.mov th.ord.on{color:var(--acc)}
 table.mov td{padding:7px 10px;border-bottom:1px solid var(--bordo);vertical-align:middle}
 table.mov tbody tr:hover{background:var(--card2)}
 table.mov tr.off td:not(.azioni){opacity:.6}

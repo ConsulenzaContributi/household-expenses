@@ -19,11 +19,20 @@ Fa tre cose:
 
 Ascolta solo su 127.0.0.1: nessuno da fuori può raggiungerlo.
 """
-import base64, http.server, json, os, platform, re, socketserver, subprocess, sys
+import base64, http.server, json, os, platform, re, socketserver, subprocess, sys, threading, webbrowser
 import urllib.request, urllib.error
 from pathlib import Path
 
-RADICE = Path(__file__).resolve().parent
+VERSIONE = "1.1.0"
+
+# In sviluppo (python3 server.py) la radice è la cartella dello script.
+# Impacchettato con PyInstaller (l'eseguibile Windows) NON porta con sé
+# index.html/js/css dentro l'eseguibile: l'installer li mette semplicemente
+# nella stessa cartella dell'eseguibile, insieme ad archivio/ e raw/ — quindi
+# la radice resta "la cartella di dove gira il programma" in entrambi i casi,
+# senza bisogno di due percorsi diversi per file statici e dati dell'utente.
+CONGELATO = getattr(sys, "frozen", False)
+RADICE = Path(sys.executable).resolve().parent if CONGELATO else Path(__file__).resolve().parent
 ARCHIVIO = RADICE / "archivio"
 ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions"
 MODELLO_DEFAULT = "nvidia/nemotron-3-super-120b-a12b"
@@ -54,7 +63,7 @@ def chiave():
 
 # solo lettere, cifre, spazio, trattino, underscore, punto: niente che possa
 # uscire dalla cartella archivio/ (niente "/", "\", "..")
-_NOME_VALIDO = re.compile(r"^[\w àèéìòù\-,()%€]+$", re.UNICODE)
+_NOME_VALIDO = re.compile(r"^[\w àèéìòù\-,.()%€]+$", re.UNICODE)
 
 
 def percorso_sicuro(sottocartella, nomefile):
@@ -135,6 +144,7 @@ class Gestore(http.server.SimpleHTTPRequestHandler):
                 "modello": MODELLO_DEFAULT,
                 "modelloVeloce": MODELLO_VELOCE,
                 "chiave": (k[:9] + "…" + k[-4:]) if k else None,
+                "versione": VERSIONE,
             })
         if self.path.startswith("/api/llm/modelli"):
             return self._json(200, {"modelli": MODELLI_DISPONIBILI})
@@ -339,13 +349,37 @@ class Server(socketserver.ThreadingTCPServer):
     daemon_threads = True
 
 
+def _avvia_server(porta_richiesta, tentativi=20):
+    """Prova a legarsi alla porta richiesta; se occupata (un'altra copia già
+    avviata, o un altro programma) prova le successive — così funziona anche
+    con un doppio clic sull'eseguibile, senza dover scegliere una porta."""
+    porta = porta_richiesta
+    for _ in range(tentativi):
+        try:
+            return Server(("127.0.0.1", porta), Gestore), porta
+        except OSError:
+            porta += 1
+    raise SystemExit("Non trovo una porta libera fra %d e %d." % (porta_richiesta, porta - 1))
+
+
 if __name__ == "__main__":
-    porta = int(sys.argv[1]) if len(sys.argv) > 1 else 8791
+    porta_richiesta = int(sys.argv[1]) if len(sys.argv) > 1 else 8791
     ARCHIVIO.mkdir(exist_ok=True)
-    with Server(("127.0.0.1", porta), Gestore) as s:
-        stato = "collegata" if chiave() else "NON configurata (vedi chiave-nvidia.txt)"
+    (RADICE / "raw").mkdir(exist_ok=True)
+    s, porta = _avvia_server(porta_richiesta)
+    with s:
+        url = "http://127.0.0.1:%d" % porta
+        print("  Spese di casa — v%s" % VERSIONE)
+        print("  ─────────────────────────────────────────────")
+        print("  App avviata su %s" % url)
+        stato = "collegata" if chiave() else "NON configurata (vedi chiave-nvidia.txt, oppure Impostazioni nell'app)"
         print("  Assistente NVIDIA: %s" % stato)
-        print("  Modello: %s\n" % MODELLO_DEFAULT)
+        print("  Modello: %s" % MODELLO_DEFAULT)
+        print("  Lascia aperta questa finestra mentre usi l'app. Per chiudere: Ctrl+C.\n", flush=True)
+        # apre il browser da solo un attimo dopo l'avvio: stessa comodità di
+        # avvia.command su Mac, ma dentro il programma stesso — vale anche
+        # per l'eseguibile Windows, che non ha una shell a fare da tramite
+        threading.Timer(0.8, lambda: webbrowser.open(url)).start()
         try:
             s.serve_forever()
         except KeyboardInterrupt:

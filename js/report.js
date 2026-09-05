@@ -44,6 +44,14 @@ window.REP = (function () {
       { dim: 8.5, colore: '#A8C4E8', all: 'dx' });
     doc.y = PDF.A4.h - 132;
 
+    /* ---- avviso "parziale": il mese è ancora aperto quando è stato generato ---- */
+    if (extra.parziale) {
+      doc.rett(M, doc.y - 26, L, 26, COLORI.ambraChiaro);
+      doc.testo(`⚠ Report PARZIALE, generato il ${extra.parziale}: il ${rep.meseLabel} non è ancora concluso, ` +
+        'nuovi movimenti possono cambiare questi numeri.', M + 12, doc.y - 16, { dim: 8.5, colore: COLORI.ambra, max: L - 24 });
+      doc.y -= 36;
+    }
+
     /* ---- quattro riquadri ---- */
     const personale = c.modalita === 'personale';
     const kpi = personale ? [
@@ -158,10 +166,14 @@ window.REP = (function () {
     doc.intestazionePagina(doc);
     let legenda = false;
     for (const m of rep.tutti.slice().sort(ordina)) {
-      if (doc.y - 16 < M + 30) { doc.nuovaPagina(); }
+      // riga sotto la descrizione con il perché di categoria/quota — la nota scritta a mano
+      // se c'è, altrimenti il motivo automatico della regola: è la "giustificazione" della spesa
+      const motivo = (m.nota || m.suggerimento || (m.escluso ? 'Escluso: ' + (m.motivoEsclusione || 'manuale') : '') || '').trim();
+      const altezza = motivo ? 24 : 15;
+      if (doc.y - altezza - 1 < M + 30) { doc.nuovaPagina(); }
       const cl = E.classe(m);
       const y = doc.y;
-      if (cl !== 'personale' || m.conto === 'carta:1234') doc.rett(M - 4, y - 4.5, L + 8, 15, SFONDO[cl]);
+      if (cl !== 'personale' || m.conto === 'carta:1234') doc.rett(M - 4, y - 4.5, L + 8, altezza, SFONDO[cl]);
       const qc = E.quotaComune(m);
       doc.testo(gg(m.data), M, y, { dim: 8, colore: COLORI.tenue });
       doc.testo(U.pulisci(m.descrizione), M + 30, y, { dim: 8.5, max: 178 });
@@ -172,7 +184,8 @@ window.REP = (function () {
       doc.testo(m.escluso ? '—' : (m.quota || 0) + '%', M + 472, y, { dim: 7.5, all: 'dx', colore: COLORI.tenue });
       doc.testo(m.escluso ? '—' : U.eur(qc), M + L, y,
         { dim: 8.5, all: 'dx', grassetto: qc > 0, colore: qc > 0 ? COLORI.verde : COLORI.tenue });
-      doc.y -= 15;
+      if (motivo) doc.testo(motivo, M + 30, y - 10, { dim: 7, colore: COLORI.tenue, max: L - 30 });
+      doc.y -= altezza;
       legenda = true;
     }
 
@@ -229,6 +242,11 @@ window.REP = (function () {
     r1.push([{ v: `${rep.tutti.length} movimenti · generato il ` +
       new Date().toLocaleDateString('it-IT'), s: S.normale }]);
     r1.push([]);
+    if (extra.parziale) {
+      r1.push([{ v: `⚠ PARZIALE — generato il ${extra.parziale}: il ${rep.meseLabel} non è ancora concluso, ` +
+        'nuovi movimenti possono cambiare questi numeri.', s: S.personale }]);
+      r1.push([]);
+    }
     r1.push([{ v: E.fraseSaldo(rep), s: S.sottotitolo }]);
     r1.push([]);
     const kpi = [
@@ -277,9 +295,14 @@ window.REP = (function () {
     };
     const r2 = [[H('Data operazione'), H('Data addebito'), H('Descrizione'), H('Esercente'),
                  H('Categoria'), H('Conto'), H('Importo'), H('Quota %'), H('In comune'),
-                 H('Pagato da'), H('Come viene contata'), H('Nota')]];
+                 H('Pagato da'), H('Come viene contata'), H('Motivo / giustificazione')]];
     for (const m of rep.tutti.slice().sort(ordina)) {
       const cl = E.classe(m), st = stiliRiga[cl];
+      // la nota scritta a mano ha sempre la precedenza; se manca, spiega comunque
+      // perché la spesa è classificata così — la regola che l'ha intercettata,
+      // o il motivo per cui è stata esclusa dal conteggio
+      const motivo = m.nota || m.suggerimento ||
+        (m.escluso ? 'Escluso: ' + (m.motivoEsclusione || 'manuale') : '');
       r2.push([
         { v: m.data, s: S.data }, { v: m.dataReg || m.data, s: S.data },
         { v: U.pulisci(m.descrizione), s: st.t }, { v: m.esercente, s: st.t },
@@ -290,7 +313,7 @@ window.REP = (function () {
         { v: E.quotaComune(m), s: st.e },
         { v: m.pagatoDa === 'moglie' ? c.nomeAltro : c.nomeMio, s: st.t },
         { v: m.escluso ? (E.ETICHETTA_CLASSE.esclusa + ' — ' + (m.motivoEsclusione || '')) : E.ETICHETTA_CLASSE[cl], s: st.t },
-        { v: m.nota || '', s: st.t }
+        { v: motivo, s: st.t }
       ]);
     }
     r2.push([]);
@@ -323,7 +346,7 @@ window.REP = (function () {
     return XW.crea([
       { nome: 'Riepilogo', righe: r1, larghezze: [34, 15, 15, 15, 15] },
       { nome: 'Movimenti', righe: r2, blocca: 1, filtro: 1,
-        larghezze: [15, 15, 46, 28, 20, 20, 12, 9, 12, 12, 26, 30] },
+        larghezze: [15, 15, 46, 28, 20, 20, 12, 9, 12, 12, 26, 44] },
       { nome: 'Esercenti', righe: r3, blocca: 1, filtro: 1, larghezze: [34, 20, 8, 14, 14, 22] },
       { nome: 'Note', righe: r4, blocca: 1, larghezze: [12, 70, 18] }
     ]);

@@ -157,13 +157,30 @@ window.R = (function () {
    * Riconosce lo stesso movimento presente su due fonti (tipico: la carta di debito
    * compare sia nell'estratto carta sia nei movimenti del conto corrente)
    * e disattiva la copia sul conto corrente, così non viene contata due volte.
+   *
+   * L'incrocio è per importo + inizio della descrizione, TOLLERANDO qualche
+   * giorno di scarto sulla data: l'addebito sul conto arriva spesso qualche
+   * giorno dopo la data dell'operazione sulla carta (weekend, fine mese,
+   * banche diverse...), quindi pretendere la data esatta lascia sfuggire
+   * doppioni veri. La vicinanza di date resta comunque richiesta, per non
+   * incrociare per sbaglio due spese diverse allo stesso esercente con lo
+   * stesso importo ma in giorni lontani.
    */
+  const FINESTRA_GIORNI_DOPPIONE = 6;
+  const chiaveApprox = (m) => [Math.abs(m.importo).toFixed(2), U.chiave(m.descrizione).slice(0, 16)].join('|');
+  const giornoIndice = (m) => {
+    const t = Date.parse(m.data);
+    return isNaN(t) ? null : Math.floor(t / 86400000);
+  };
+  const vicine = (a, b) => a != null && b != null && Math.abs(a - b) <= FINESTRA_GIORNI_DOPPIONE;
+
   function deduplica(movimenti) {
     const gruppi = new Map();
     for (const m of movimenti) {
       if (m.manuale) continue;
-      if (!gruppi.has(m.chiaveIncrocio)) gruppi.set(m.chiaveIncrocio, []);
-      gruppi.get(m.chiaveIncrocio).push(m);
+      const k = chiaveApprox(m);
+      if (!gruppi.has(k)) gruppi.set(k, []);
+      gruppi.get(k).push(m);
     }
     let n = 0;
     for (const gruppo of gruppi.values()) {
@@ -173,19 +190,23 @@ window.R = (function () {
       if (!daCarta.length || !daConto.length) continue;
       for (const m of daConto) {
         if (m.bloccato) continue;
+        const gc = giornoIndice(m);
+        const gemello = daCarta.find((x) => vicine(gc, giornoIndice(x)));
+        if (!gemello) continue;
         m.escluso = true;
         m.motivoEsclusione = 'duplicato-carta';
-        m.duplicatoDi = daCarta[0].id;
+        m.duplicatoDi = gemello.id;
         n++;
       }
     }
-    // ripristina i movimenti del conto che non hanno più un gemello (es. estratto carta rimosso)
+    // ripristina i movimenti del conto che non hanno più un gemello vicino
+    // (es. estratto carta rimosso, o non c'è più nulla entro la finestra di giorni)
     for (const m of movimenti) {
       if (m.motivoEsclusione === 'duplicato-carta' && !m.bloccato) {
-        const g = gruppi.get(m.chiaveIncrocio) || [];
-        if (!g.some((x) => x.fonte === 'carta' || x.fonte === 'telepass')) {
-          m.escluso = false; m.motivoEsclusione = null; m.duplicatoDi = null;
-        }
+        const g = gruppi.get(chiaveApprox(m)) || [];
+        const gc = giornoIndice(m);
+        const haGemello = g.some((x) => (x.fonte === 'carta' || x.fonte === 'telepass') && vicine(gc, giornoIndice(x)));
+        if (!haGemello) { m.escluso = false; m.motivoEsclusione = null; m.duplicatoDi = null; }
       }
     }
     return n;
@@ -194,5 +215,83 @@ window.R = (function () {
   const colore = (cat) => (CATEGORIE.find((c) => c.nome === cat) || {}).colore || '#71717a';
   const icona  = (cat) => (CATEGORIE.find((c) => c.nome === cat) || {}).icona  || '❓';
 
-  return { CATEGORIE, REGOLE_DEFAULT, CONTI_DEFAULT, applica, deduplica, contoInfo, colore, icona };
+  /* ============================================ regole in formato .md === */
+  /** dentro una cella di tabella markdown: niente "|" (spezza la tabella)
+   *  né newline, così patterns con più parole "a|b|c" restano leggibili */
+  const cella = (s) => String(s == null ? '' : s).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ').trim() || '—';
+
+  /**
+   * Documento leggibile con tutte le regole in vigore: categorizzazione,
+   * comportamento dei conti, e il criterio con cui si riconoscono i doppioni
+   * fra conto corrente e carta. Pensato per essere letto, confrontato,
+   * discusso e migliorato da una persona — l'unico formato che l'app importa
+   * davvero dentro l'archivio resta il .json (scheda Regole, pulsante Importa),
+   * pensato per essere scritto da una macchina, non da chi legge questo file.
+   */
+  function regoleMarkdown(regole, conti) {
+    const oggi = new Date().toISOString().slice(0, 10);
+    const righeRegole = regole.map((r, i) => `| ${i + 1} | \`${cella(r.m)}\` | ${cella(r.cat)} | ${
+      r.quota == null ? 'del conto' : r.quota + '%'} | ${r.anche ? 'sì' : 'no'} | ${cella(r.escludi)} | ${cella(r.nota)} |`).join('\n');
+
+    const righeConti = Object.entries(conti || CONTI_DEFAULT).map(([k, v]) =>
+      `| \`${cella(k)}\` | ${cella(v.etichetta)} | ${v.quotaBase}% | ${cella(v.descrizione)} |`).join('\n');
+
+    return `# Regole di "Spese di casa"
+
+Generato il ${oggi}. Documenta **tutte** le regole con cui l'app decide, da sola, categoria e
+quota comune di ogni spesa — così puoi leggerle, confrontarle e migliorarle senza aprire il
+codice. Per portare delle modifiche dentro l'app usa il formato \`.json\` (scheda **Regole**,
+pulsante **⬆ Importa**): questo \`.md\` è pensato per essere letto da una persona, non importato
+da una macchina.
+
+## Come funziona il riconoscimento
+
+Ogni movimento viene confrontato con le regole **dall'alto verso il basso**: vince la prima il
+cui testo (una o più parole separate da \`|\`, senza distinguere maiuscole/minuscole) trova
+corrispondenza nella descrizione. Se nessuna regola corrisponde, la spesa prende la categoria
+"Altro" e la quota predefinita del conto da cui arriva.
+
+- **Quota**: percentuale dell'importo che entra nelle spese comuni (100% = tutta comune, 0% = personale).
+  "del conto" = usa il comportamento predefinito del conto, senza imporre un valore fisso.
+- **Vale sempre**: se "sì", la regola si applica anche sui conti che di norma restano fuori dalle
+  spese comuni (tipico di assicurazioni, bollette, imprevisti: sono comuni indipendentemente da
+  dove sono state pagate).
+- **Escludi**: se presente, il movimento viene tolto del tutto dal conteggio (giroconti, ricariche,
+  prelievi da assegnare a mano).
+
+## Regole di categorizzazione
+
+| # | Pattern | Categoria | Quota | Vale sempre | Escludi | Nota |
+|---|---|---|---|---|---|---|
+${righeRegole}
+
+## Comportamento predefinito dei conti
+
+Si applica solo ai movimenti che non incontrano nessuna regola sopra.
+
+| Conto | Etichetta | Quota base | Descrizione |
+|---|---|---|---|
+${righeConti}
+
+## Doppioni fra conto corrente e carta
+
+La stessa spesa arriva spesso da **due fonti**: l'estratto della carta (data dell'acquisto) e
+i movimenti del conto corrente (data dell'addebito, quasi sempre qualche giorno dopo). Per non
+contarla due volte, l'app riconosce due movimenti come lo stesso doppione quando **tutte** queste
+condizioni sono vere:
+
+1. **stesso importo** (in valore assoluto);
+2. le **prime 16 lettere/cifre** della descrizione coincidono (ignorando maiuscole, accenti e
+   punteggiatura);
+3. le **date sono vicine entro 6 giorni** — non deve essere lo stesso giorno esatto, perché
+   l'addebito sul conto arriva quasi sempre con un piccolo ritardo rispetto alla carta.
+
+Quando tutte e tre corrispondono, il movimento del **conto corrente** viene escluso dal conteggio
+(motivo "duplicato-carta") e resta valido solo quello della **carta**, che è la fonte più
+affidabile per data e descrizione dell'acquisto vero. Se in seguito rimuovi l'estratto della
+carta, il movimento del conto corrente torna automaticamente a essere contato.
+`;
+  }
+
+  return { CATEGORIE, REGOLE_DEFAULT, CONTI_DEFAULT, applica, deduplica, contoInfo, colore, icona, regoleMarkdown };
 })();

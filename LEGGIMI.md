@@ -7,8 +7,13 @@ Gira interamente nel browser, sul tuo computer: **nessun dato viene inviato onli
 
 ## Come si avvia
 
-Doppio clic su **`avvia.command`**. Si apre il browser da solo sull'app.
-Lascia aperta la finestra nera del Terminale mentre la usi; per chiudere, premi `Ctrl+C`.
+**Mac/Linux**: doppio clic su **`avvia.command`**. Si apre il browser da solo sull'app.
+Lascia aperta la finestra del Terminale mentre la usi; per chiudere, premi `Ctrl+C`.
+
+**Windows**: scarica e lancia l'installer **`SpeseDiCasa-Setup-X.Y.Z.exe`** dalla sezione
+[Releases](../../releases) del repository — crea un collegamento nel menu Start (e, a scelta,
+sul desktop) che avvia l'app con un doppio clic, senza dover installare Python. In alternativa,
+se hai già Python 3 installato, puoi clonare il repository e lanciare **`avvia.bat`**.
 
 > Puoi anche aprire `index.html` con un doppio clic, ma in quel modo l'app **non** può leggere
 > da sola la cartella `raw/`: dovrai trascinare i file dentro a mano.
@@ -43,7 +48,7 @@ cambiarla non tocca i movimenti già importati, cambia solo come vengono present
 4. Vai su **Movimenti → Da controllare** e sistema le poche voci rimaste.
 5. Aggiungi con **＋ Spesa** quello che non compare negli estratti: contanti, assicurazione,
    bollette, imprevisti.
-6. Da **Riepilogo** premi **📄 PDF** e **📗 XLSX**: finiscono da soli in `archivio/2026-08/`, con
+6. Da **Riepilogo** premi **📄 PDF** e **📗 XLSX**: finiscono da soli in `archivio/2026/`, con
    nome già pronto — non c'è nessuna finestra "salva con nome" da compilare.
 7. Su **Note** lascia i promemoria per il mese prossimo: li ritroverai nel riepilogo di settembre.
 
@@ -94,9 +99,10 @@ guardando: un promemoria o una classificazione hanno senso su un mese preciso, n
 Puoi passare da Anno 2026 a Riepilogo, poi aprire Note, e vedi comunque i promemoria del mese che
 stavi seguendo prima di allargare lo zoom.
 
-PDF, XLSX e CSV seguono il periodo che stai guardando in quel momento, e finiscono ciascuno nella
-sua sottocartella: `archivio/2026-07/` per un mese, `archivio/2026-T3/` per un trimestre,
-`archivio/2026/` per un anno intero.
+PDF, XLSX e CSV seguono il periodo che stai guardando in quel momento, e finiscono tutti dentro
+`archivio/2026/` — **una sola cartella per anno**, non una per mese: mese, trimestre e anno di
+quel 2026 restano insieme, ordinati da soli grazie al periodo scritto nel nome del file
+(es. `2026-07 - Report spese comuni.pdf`, `2026-T3 - Report spese comuni.pdf`).
 
 ## Cerca per soggetto
 
