@@ -28,8 +28,10 @@ categorize, and optionally split expenses with someone or just track your own.*
 
 ## Come si avvia
 
-**Windows**: scarica l'installer `SpeseDiCasa-Setup-X.Y.Z.exe` dalla sezione
-[Releases](../../releases) — non serve installare Python, crea un collegamento nel menu Start.
+**Windows**: scarica **[windows/SpeseDiCasa-Setup.exe](windows/SpeseDiCasa-Setup.exe)** — link
+stabile, sempre aggiornato all'ultima versione, non serve installare Python, crea un
+collegamento nel menu Start. Le versioni precedenti restano nella sezione
+[Releases](../../releases).
 
 **Mac/Linux**: serve Python 3 (preinstallato su macOS e sulla maggior parte delle distribuzioni Linux).
 

@@ -5,8 +5,14 @@ name: Build Windows installer
 #
 # Si avvia da solo quando spingi un tag "v*" (es. v1.1.0), oppure a mano dalla
 # scheda Actions del repository ("Run workflow"). Il file .exe risultante
-# finisce sia negli "artifacts" della run, sia — solo per i tag — allegato a
-# una Release GitHub, pronta da linkare o scaricare.
+# finisce in tre posti:
+#   1. negli "artifacts" della run (scade dopo qualche mese);
+#   2. — solo per i tag — allegato a una Release GitHub, per lo storico
+#      versione per versione;
+#   3. nella cartella windows/ sul branch main, sempre sovrascritta con
+#      l'ultima build riuscita: un link stabile e sempre valido
+#      (…/blob/main/windows/SpeseDiCasa-Setup.exe) da dare a chi deve
+#      installare l'app, senza dover cercare fra le Release.
 
 on:
   push:
@@ -80,3 +86,23 @@ jobs:
         with:
           files: packaging/windows/output/SpeseDiCasa-Setup-*.exe
           generate_release_notes: true
+
+      - name: Aggiorna windows/ sul branch main con l'ultima build
+        shell: bash
+        run: |
+          # il checkout di un tag lascia il repository in "detached HEAD": ci
+          # spostiamo su main (i file appena costruiti restano sul disco,
+          # git checkout tocca solo i file tracciati) per poterci commitare sopra
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p windows
+          cp packaging/windows/output/SpeseDiCasa-Setup-*.exe windows/SpeseDiCasa-Setup.exe
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add windows/SpeseDiCasa-Setup.exe
+          if git diff --cached --quiet; then
+            echo "installer identico all'ultima volta, niente da salvare"
+          else
+            git commit -m "windows: aggiorna installer alla versione ${{ steps.versione.outputs.numero }} [skip ci]"
+            git push origin main
+          fi

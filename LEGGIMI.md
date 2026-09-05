@@ -10,10 +10,12 @@ Gira interamente nel browser, sul tuo computer: **nessun dato viene inviato onli
 **Mac/Linux**: doppio clic su **`avvia.command`**. Si apre il browser da solo sull'app.
 Lascia aperta la finestra del Terminale mentre la usi; per chiudere, premi `Ctrl+C`.
 
-**Windows**: scarica e lancia l'installer **`SpeseDiCasa-Setup-X.Y.Z.exe`** dalla sezione
-[Releases](../../releases) del repository — crea un collegamento nel menu Start (e, a scelta,
-sul desktop) che avvia l'app con un doppio clic, senza dover installare Python. In alternativa,
-se hai già Python 3 installato, puoi clonare il repository e lanciare **`avvia.bat`**.
+**Windows**: scarica e lancia **[windows/SpeseDiCasa-Setup.exe](windows/SpeseDiCasa-Setup.exe)**
+— link stabile dentro il repository, sempre aggiornato all'ultima versione (le versioni
+precedenti restano nella sezione [Releases](../../releases)). Crea un collegamento nel menu
+Start (e, a scelta, sul desktop) che avvia l'app con un doppio clic, senza dover installare
+Python. In alternativa, se hai già Python 3 installato, puoi clonare il repository e lanciare
+**`avvia.bat`**.
 
 > Puoi anche aprire `index.html` con un doppio clic, ma in quel modo l'app **non** può leggere
 > da sola la cartella `raw/`: dovrai trascinare i file dentro a mano.
